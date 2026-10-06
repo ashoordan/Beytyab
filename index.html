@@ -119,11 +119,16 @@ const totalStars=()=>Object.values(prog).reduce((a,x)=>a+x.s,0);
 let AC,MG,SG,ext,SC=[293.66,311.13,369.99,392,440,466.16,523.25,587.33],mi=3;
 function applyVol(){if(!AC)return;MG.gain.value=S.music?S.vol*.5:0;SG.gain.value=S.sfx?S.vol:0;if(ext)ext.volume=S.music?S.vol*.7:0;$('snd').textContent=(S.music||S.sfx)?'🔊':'🔇'}
 function tone(f,t,d,ty,v,dest){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dest);o.start(t);o.stop(t+d+.05)}
-function initAudio(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();SG=AC.createGain();
-const d=AC.createDelay(),fb=AC.createGain();d.delayTime.value=.33;fb.gain.value=.4;d.connect(fb);fb.connect(d);MG.connect(AC.destination);MG.connect(d);d.connect(AC.destination);SG.connect(AC.destination);
-const synth=()=>{[73.42,110].forEach(f=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(MG);o.start()});
-setInterval(()=>{if(Math.random()<.65){mi=Math.max(0,Math.min(7,mi+(Math.random()*5|0)-2));tone(SC[mi],AC.currentTime,1.3,'triangle',.25,MG)}},480)};
-if(CFG.MUSIC_URL){ext=new Audio(CFG.MUSIC_URL);ext.loop=true;ext.play().catch(()=>{ext=null;synth()})}else synth();
+let synthOn=0,extFail=0;
+function synth(){if(synthOn||!AC)return;synthOn=1;[73.42,110].forEach(f=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(MG);o.start()});
+setInterval(()=>{if(S.music&&Math.random()<.65){mi=Math.max(0,Math.min(7,mi+(Math.random()*5|0)-2));tone(SC[mi],AC.currentTime,1.3,'triangle',.25,MG)}},480)}
+function initAudio(){try{
+if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();SG=AC.createGain();
+const d=AC.createDelay(),fb=AC.createGain();d.delayTime.value=.33;fb.gain.value=.4;d.connect(fb);fb.connect(d);MG.connect(AC.destination);MG.connect(d);d.connect(AC.destination);SG.connect(AC.destination)}
+if(AC.state==='suspended')AC.resume();
+if(CFG.MUSIC_URL&&!ext&&!extFail){ext=new Audio(CFG.MUSIC_URL);ext.loop=true;ext.onerror=()=>{ext=null;extFail=1;synth();console.warn('MUSIC_URL failed, using built-in music')}}
+if(ext){if(ext.paused&&S.music)ext.play().catch(e=>{if(e&&e.name!=='NotAllowedError'){ext=null;extFail=1;synth()}})}
+else if(!CFG.MUSIC_URL||extFail)synth();
 applyVol()}catch(e){}}
 function sfx(n){if(!AC||!S.sfx)return;const t=AC.currentTime,s=SG;
 if(n==='tap')tone(520,t,.08,'sine',.3,s);
@@ -131,7 +136,7 @@ if(n==='word'){tone(660,t,.15,'triangle',.4,s);tone(880,t+.1,.2,'triangle',.4,s)
 if(n==='thorn')tone(110,t,.4,'sawtooth',.35,s);
 if(n==='win')[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.13,.4,'triangle',.4,s));
 if(n==='lose')[330,262,196].forEach((f,i)=>tone(f,t+i*.2,.4,'sawtooth',.3,s))}
-document.addEventListener('pointerdown',initAudio,{once:true});
+['click','touchend','keydown'].forEach(e=>document.addEventListener(e,initAudio));
 
 /* ---------- ظاهر ---------- */
 function look(){const t=S.theme==='auto'?TH[li%TH.length]:TH[+S.theme],s=document.documentElement.style;
