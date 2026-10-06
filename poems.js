@@ -66,4 +66,4 @@ window.POEMS = [
 
 // موسیقی آنلاین (اختیاری): آدرس مستقیم یک فایل mp3 را اینجا بگذار.
 // اگر خالی بماند، موسیقی داخلی بازی (با سازهای ایرانی‌نما) پخش می‌شود.
-window.MUSIC_URL = 'https://nicmusic.musitraf.com/upload/2024/01/14/3Tar%20Ahmad%20Abedi%20-%20Avaz%20Aboatta.mp3';
+window.MUSIC_URL = 'music/3Tar.mp3';
