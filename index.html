@@ -99,7 +99,7 @@ const PV=[['آذربایجان شرقی',8],['آذربایجان غربی',205],
 ['قزوین',262],['قم',172],['کردستان',148],['کرمان',28],['کرمانشاه',112],['کهگیلویه و بویراحمد',88],['گلستان',132],['گیلان',152],
 ['لرستان',170],['مازندران',140],['مرکزی',300],['هرمزگان',196],['همدان',280],['استان اصفهان',222],['استان یزد',48]];
 PV.forEach(([n,h])=>TH.push([n.startsWith('استان')?n:'استان '+n,`hsl(${h},45%,22%)`,`hsl(${h},50%,9%)`,`hsl(${h},36%,42%)`,`hsl(${h},38%,31%)`,`hsl(${(h+40)%360},75%,72%)`]));
-const DIF={easy:{n:'آسان',h:5,m:.6},normal:{n:'متوسط',h:3,m:1},hard:{n:'سخت',h:2,m:1.5}};
+const DIF={easy:{n:'آسان',h:5,m:.6,x:1},normal:{n:'متوسط',h:3,m:1,x:2},hard:{n:'سخت',h:2,m:1.5,x:3}};
 const $=i=>document.getElementById(i);
 const fa=n=>(+n).toLocaleString('fa-IR');
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -121,6 +121,8 @@ while(ptr<P[pi].length&&(n<tg||!ch.length)){const l=P[pi][ptr];if(ch.length&&n+l
 out=ch}return out}
 const doneCount=()=>{let d=0;while(prog[d])d++;return d};
 const totalStars=()=>Object.values(prog).reduce((a,x)=>a+x.s,0);
+const pOf=x=>x.p!=null?x.p:x.s*20;
+const totalPts=()=>Object.values(prog).reduce((a,x)=>a+pOf(x),0);
 
 /* ---------- صدا و موسیقی ---------- */
 let AC,MG,SG,ext,SC=[293.66,311.13,369.99,392,440,466.16,523.25,587.33],mi=3;
@@ -172,12 +174,12 @@ if(CFG.FIREBASE_URL){try{$('go').textContent='...';const r=await tf(fb(k),{metho
 user={name:n,key:k,token,offline:off};W('bayt_user',user);prog=J('bayt_prog_'+k,{});initAudio();start(doneCount())}}
 async function sync(){W('bayt_prog_'+user.key,prog);if(user.offline)return;
 const tt=Object.values(prog).reduce((a,x)=>a+x.t,0),d=Object.keys(prog).length;
-try{let r;if(CFG.FIREBASE_URL)r=await tf(fb(user.key),{method:'PUT',body:JSON.stringify({n:user.name,s:totalStars(),d:d,t:tt})});
-else if(CFG.API_URL)r=await tf(CFG.API_URL+'/score',{method:'POST',body:JSON.stringify({key:user.key,token:user.token,s:totalStars(),d:d,t:tt})});
+try{let r;if(CFG.FIREBASE_URL)r=await tf(fb(user.key),{method:'PUT',body:JSON.stringify({n:user.name,s:totalStars(),p:totalPts(),d:d,t:tt})});
+else if(CFG.API_URL)r=await tf(CFG.API_URL+'/score',{method:'POST',body:JSON.stringify({key:user.key,token:user.token,s:totalStars(),p:totalPts(),d:d,t:tt})});
 srv=r&&!r.ok?'❌ ارسال امتیاز ناموفق (کد '+r.status+')':''}catch(e){srv='❌ اتصال به سرور برقرار نشد'}}
 async function connect(){if(!user.offline||!CFG.FIREBASE_URL)return;
 try{const tt=Object.values(prog).reduce((a,x)=>a+x.t,0);
-const r=await tf(fb(user.key),{method:'PUT',headers:{'if-match':'null_etag'},body:JSON.stringify({n:user.name,s:totalStars(),d:Object.keys(prog).length,t:tt})});
+const r=await tf(fb(user.key),{method:'PUT',headers:{'if-match':'null_etag'},body:JSON.stringify({n:user.name,s:totalStars(),p:totalPts(),d:Object.keys(prog).length,t:tt})});
 if(r.ok){user.offline=0;W('bayt_user',user);srv=''}else srv=r.status===412?'❌ این نام روی سرور قبلاً ثبت شده؛ باید نام کاربری را عوض کنی':'❌ خطای سرور (کد '+r.status+')'}
 catch(e){srv='❌ اتصال به سرور برقرار نشد (شاید فیلتر باشد)'}}
 
@@ -222,7 +224,7 @@ if(c.t){e.className+=' t';e.innerHTML='<span>🥀</span>'}
 else if(c.w>=0){const w=words[c.w],fs=Math.max(8,Math.min(16,(sz-8)/(w.length*.52)));e.className+=' w';e.innerHTML='<span style="font-size:'+fs+'px">'+w+'</span>'+(c.a?'<i>'+fa(c.a)+'</i>':'')}
 else if(c.a){e.className+=' n'+c.a;e.textContent=fa(c.a)}}else if(c.f)e.textContent='🚩'});
 $('hp').textContent='❤️'.repeat(Math.max(hearts,0));$('flag').className='b'+(flag?' on':'');
-$('who').textContent='👤 '+user.name+' · ⭐'+fa(totalStars());$('lvl').textContent='مرحله '+fa(li+1);
+$('who').textContent='👤 '+user.name+' · 🏅'+fa(totalPts())+' · ⭐'+fa(totalStars());$('lvl').textContent='مرحله '+fa(li+1);
 $('prog').textContent='کلمه‌های پیداشده: '+fa(found)+' از '+fa(words.length)}
 
 /* ---------- چیدن بیت ---------- */
@@ -236,9 +238,10 @@ $('clr').onclick=()=>{AR.pick=[];arrangeShow()}}
 function check(){if(AR.pick.every((p,i)=>words[p]===words[i]))return win();
 sfx('lose');$('lines').className='shake';setTimeout(()=>{AR.pick=[];arrangeShow()},450)}
 function win(){phase='done';const el=Math.floor((Date.now()-t0)/1000),st=Math.max(1,3-(D.h-hearts)),old=prog[li];let msg='';
-if(!old||st>old.s||(st===old.s&&el<old.t)){prog[li]={s:st,t:el};msg=old?'🎉 رکورد جدید!':''}
+const pt=st*10*D.x,po=old?pOf(old):-1;
+if(!old||pt>po||(pt===po&&el<old.t)){prog[li]={s:st,t:el,p:pt,f:S.dif};msg=old?'🎉 رکورد جدید!':''}
 sync();draw();sfx('win');leaves();
-card('<h2 style="margin:0;color:var(--acc)">آفرین! '+msg+'</h2><div class="st">'+'⭐'.repeat(st)+'☆'.repeat(3-st)+'</div><div class="sub">زمان: '+mmss(el)+' · بهترین: ⭐'+fa(prog[li].s)+' در '+mmss(prog[li].t)+'</div>'+
+card('<h2 style="margin:0;color:var(--acc)">آفرین! '+msg+'</h2><div class="st">'+'⭐'.repeat(st)+'☆'.repeat(3-st)+'</div><div class="sub">امتیاز این بار: 🏅'+fa(pt)+' ('+D.n+' ×'+fa(D.x)+') · زمان: '+mmss(el)+'</div><div class="sub">بهترین این مرحله: 🏅'+fa(pOf(prog[li]))+' در '+mmss(prog[li].t)+'</div>'+
 '<div class="poem">'+rowsW.map(m=>m.join(' ')).join('<br>')+'</div><div class="row"><button class="b big" id="nx">مرحله‌ی بعد ←</button><button class="b" id="mp">🗺 مراحل</button></div>');
 $('nx').onclick=()=>start(li+1);$('mp').onclick=showMap}
 
@@ -251,15 +254,15 @@ $('map').onclick=showMap;
 
 /* ---------- جدول برترین‌ها ---------- */
 async function showLB(){card('<h2 style="margin:0 0 8px;color:var(--acc)">🏆 برترین‌ها</h2><div id="lbx" class="sub">در حال بارگذاری...</div>');
-let rows=[],note='';const tt=Object.values(prog).reduce((a,x)=>a+x.t,0),me={n:user.name,s:totalStars(),d:Object.keys(prog).length,t:tt};
+let rows=[],note='';const tt=Object.values(prog).reduce((a,x)=>a+x.t,0),me={n:user.name,s:totalStars(),p:totalPts(),d:Object.keys(prog).length,t:tt};
 await connect();if(!user.offline)await sync();
 try{if(CFG.FIREBASE_URL){const o=await(await tf(fb())).json()||{};rows=Object.entries(o).map(([k,v])=>({...v,k}))}
 else if(CFG.API_URL)rows=(await(await tf(CFG.API_URL+'/users')).json()).map(v=>({...v,k:v.key}))}catch(e){note='❌ اتصال به سرور برقرار نشد (شاید فیلتر باشد)'}
 if(srv)note=srv;if(user.offline&&(CFG.API_URL||CFG.FIREBASE_URL)&&!srv)note='حالت آفلاین: نام تو روی سرور ثبت نشده';
 if(!CFG.API_URL&&!CFG.FIREBASE_URL)note='حالت آفلاین: فقط امتیاز همین دستگاه (برای جدول همه، آدرس سرور را در config.js بگذار)';
 if(!rows.some(r=>r.k===user.key))rows.push({...me,k:user.key});
-rows.sort((a,b)=>b.s-a.s||b.d-a.d||a.t-b.t);
-$('lbx').outerHTML=(note?'<div class="sub">'+note+'</div>':'')+'<table class="lb">'+rows.slice(0,30).map((r,i)=>'<tr class="'+(r.k===user.key?'me':'')+'"><td>'+(['🥇','🥈','🥉'][i]||fa(i+1))+'</td><td>'+String(r.n).replace(/</g,'&lt;')+'</td><td>⭐'+fa(r.s)+'</td><td>'+fa(r.d)+' مرحله</td><td>'+mmss(r.t)+'</td></tr>').join('')+'</table>'}
+const pp=r=>r.p!=null?r.p:r.s*20;rows.sort((a,b)=>pp(b)-pp(a)||b.d-a.d||a.t-b.t);
+$('lbx').outerHTML=(note?'<div class="sub">'+note+'</div>':'')+'<table class="lb">'+rows.slice(0,30).map((r,i)=>'<tr class="'+(r.k===user.key?'me':'')+'"><td>'+(['🥇','🥈','🥉'][i]||fa(i+1))+'</td><td>'+String(r.n).replace(/</g,'&lt;')+'</td><td>🏅'+fa(pp(r))+'</td><td>⭐'+fa(r.s)+'</td><td>'+fa(r.d)+' مرحله</td><td>'+mmss(r.t)+'</td></tr>').join('')+'</table>'}
 $('lbb').onclick=showLB;
 
 /* ---------- تنظیمات ---------- */
@@ -269,7 +272,7 @@ try{const r=await tf(CFG.MUSIC_URL,{method:'HEAD'});m.textContent='آدرس: '+C
 catch(e){m.textContent='آدرس: '+CFG.MUSIC_URL+' | دسترسی به فایل ممکن نشد | '+mstat}}
 function settings(){const o=(id,arr,cur)=>'<select id="'+id+'">'+arr.map(a=>'<option value="'+a[0]+'"'+(String(a[0])===String(cur)?' selected':'')+'>'+a[1]+'</option>').join('')+'</select>';
 card('<h2 style="margin:0;color:var(--acc)">تنظیمات</h2>'+
-'<div class="set">سختی'+o('sd',Object.keys(DIF).map(k=>[k,DIF[k].n]),S.dif)+'</div>'+
+'<div class="set">سختی'+o('sd',Object.keys(DIF).map(k=>[k,DIF[k].n+' (امتیاز ×'+fa(DIF[k].x)+')']),S.dif)+'</div>'+
 '<div class="set">تم تصویری'+o('st',[['auto','خودکار (هر مرحله شهری)'],...TH.map((t,i)=>[i,t[0]])],S.theme)+'</div>'+
 '<div class="set">سبک خانه‌ها'+o('ss',[['tile','کاشی'],['round','گرد'],['glass','شیشه‌ای'],['wood','چوبی']],S.style)+'</div>'+
 '<div class="set">موسیقی'+o('sm',[[1,'روشن'],[0,'خاموش']],S.music)+'</div>'+
