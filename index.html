@@ -90,7 +90,7 @@ input[type=text],select{font:16px 'Vazirmatn',sans-serif;border-radius:10px;bord
 <script src="poems.js"></script>
 <script src="config.js"></script>
 <script>
-const CFG=Object.assign({AUTHOR:'',MUSIC_CREDIT:'',FIREBASE_URL:''},window.CONFIG||{});if(!CFG.MUSIC_URL)CFG.MUSIC_URL='3Tar.mp3';
+const CFG=Object.assign({AUTHOR:'',MUSIC_CREDIT:'',API_URL:'',FIREBASE_URL:''},window.CONFIG||{});if(!CFG.MUSIC_URL)CFG.MUSIC_URL='3Tar.mp3';
 const TH=[['توس','#1d3b2a','#0e1f16','#3f6b4e','#2f5640','#e8c766'],['نیشابور','#0f4c5c','#071f27','#2aa6a0','#1e7f86','#ffd98a'],
 ['شیراز','#6b1f3a','#2a0b17','#b9566f','#8e3b52','#ffd6a5'],['اصفهان','#14337a','#071433','#2f6fd0','#2455a8','#9ee7ff'],
 ['یزد','#7a4a1f','#2a1808','#c58a4e','#9c6a36','#ffe3a8'],['تخت جمشید','#2b2b4a','#0a0a1a','#6b6aa8','#504f86','#f2c94c']];
@@ -133,7 +133,7 @@ function initAudio(){try{
 if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();SG=AC.createGain();
 const d=AC.createDelay(),fb=AC.createGain();d.delayTime.value=.33;fb.gain.value=.4;d.connect(fb);fb.connect(d);MG.connect(AC.destination);MG.connect(d);d.connect(AC.destination);SG.connect(AC.destination)}
 if(AC.state==='suspended')AC.resume();
-if(CFG.MUSIC_URL&&!ext&&!extFail){ext=new Audio(CFG.MUSIC_URL);ext.loop=true;mstat='در حال بارگذاری موزیک...';ext.onplaying=()=>{mstat='✅ موزیک در حال پخش است'};ext.onerror=()=>{const c=ext&&ext.error?ext.error.code:'';ext=null;extFail=1;mstat='❌ فایل موزیک بارگذاری نشد (کد '+c+'): نام فایل را چک کن'}}
+if(CFG.MUSIC_URL&&!ext&&!extFail){ext=new Audio(CFG.MUSIC_URL);ext.loop=true;mstat='در حال بارگذاری موزیک...';ext.onplaying=()=>{mstat='✅ موزیک تو در حال پخش است'};ext.onerror=()=>{const c=ext&&ext.error?ext.error.code:'';ext=null;extFail=1;mstat='❌ فایل موزیک بارگذاری نشد (کد '+c+'): نام فایل را چک کن'}}
 if(ext){if(ext.paused&&S.music)ext.play().catch(e=>{if(e&&e.name==='NotSupportedError'){ext=null;extFail=1;mstat='❌ فرمت فایل پشتیبانی نمی‌شود؛ از mp3 استفاده کن'}})}
 else if(!CFG.MUSIC_URL)synth();
 applyVol()}catch(e){}}
@@ -159,22 +159,32 @@ $('re').onclick=()=>arrangeShow();
 
 /* ---------- نام کاربری و سرور ---------- */
 const nkey=n=>n.trim().replace(/ي/g,'ی').replace(/ك/g,'ک').toLowerCase().replace(/\s+/g,'_');
-const api=k=>CFG.FIREBASE_URL.replace(/\/$/,'')+'/users'+(k?'/'+encodeURIComponent(k):'')+'.json';
+const tf=(u,o)=>{const c=new AbortController();setTimeout(()=>c.abort(),8000);return window.fetch(u,Object.assign({signal:c.signal},o))};let srv='';
+const fb=k=>CFG.FIREBASE_URL.replace(/\/$/,'')+'/users'+(k?'/'+encodeURIComponent(k):'')+'.json';
 function login(msg){card('<h2 style="margin:0;color:var(--acc)">خوش آمدی 👋</h2><div class="sub">یک نام کاربری یکتا انتخاب کن (۲ تا ۱۶ حرف، عدد یا _)</div>'+
 (msg?'<div class="sub" style="color:#ff9a8a">'+msg+'</div>':'')+'<div class="row"><input type="text" id="nm" maxlength="16" placeholder="نام کاربری"></div><button class="b big" id="go">ورود</button>',false);
 $('go').onclick=async()=>{const n=$('nm').value.trim(),k=nkey(n);
 if(!/^[\u0600-\u06FFa-z0-9_\u200c]{2,16}$/.test(k))return login('نام نامعتبر است');
-if(CFG.FIREBASE_URL){try{$('go').textContent='...';const r=await fetch(api(k),{method:'PUT',headers:{'if-match':'null_etag'},body:JSON.stringify({n:n,s:0,d:0,t:0})});
-if(r.status===412)return login('این نام قبلاً گرفته شده، نام دیگری انتخاب کن');if(!r.ok)throw 0}catch(e){return login('اتصال به سرور برقرار نشد، دوباره تلاش کن')}}
-user={name:n,key:k};W('bayt_user',user);prog=J('bayt_prog_'+k,{});initAudio();start(doneCount())}}
-async function sync(){W('bayt_prog_'+user.key,prog);if(!CFG.FIREBASE_URL)return;
-const tt=Object.values(prog).reduce((a,x)=>a+x.t,0);
-try{await fetch(api(user.key),{method:'PUT',body:JSON.stringify({n:user.name,s:totalStars(),d:Object.keys(prog).length,t:tt})})}catch(e){}}
+let token='',off=0;
+if(CFG.API_URL){try{$('go').textContent='...';const r=await tf(CFG.API_URL+'/register',{method:'POST',body:JSON.stringify({key:k,name:n})});
+if(r.status===409)return login('این نام قبلاً گرفته شده، نام دیگری انتخاب کن');if(!r.ok)throw 0;token=(await r.json()).token}catch(e){off=1}}
+if(CFG.FIREBASE_URL){try{$('go').textContent='...';const r=await tf(fb(k),{method:'PUT',headers:{'if-match':'null_etag'},body:JSON.stringify({n:n,s:0,d:0,t:0})});if(r.status===412)return login('این نام قبلاً گرفته شده، نام دیگری انتخاب کن');if(!r.ok)throw 0}catch(e){off=1}}
+user={name:n,key:k,token,offline:off};W('bayt_user',user);prog=J('bayt_prog_'+k,{});initAudio();start(doneCount())}}
+async function sync(){W('bayt_prog_'+user.key,prog);if(user.offline)return;
+const tt=Object.values(prog).reduce((a,x)=>a+x.t,0),d=Object.keys(prog).length;
+try{let r;if(CFG.FIREBASE_URL)r=await tf(fb(user.key),{method:'PUT',body:JSON.stringify({n:user.name,s:totalStars(),d:d,t:tt})});
+else if(CFG.API_URL)r=await tf(CFG.API_URL+'/score',{method:'POST',body:JSON.stringify({key:user.key,token:user.token,s:totalStars(),d:d,t:tt})});
+srv=r&&!r.ok?'❌ ارسال امتیاز ناموفق (کد '+r.status+')':''}catch(e){srv='❌ اتصال به سرور برقرار نشد'}}
+async function connect(){if(!user.offline||!CFG.FIREBASE_URL)return;
+try{const tt=Object.values(prog).reduce((a,x)=>a+x.t,0);
+const r=await tf(fb(user.key),{method:'PUT',headers:{'if-match':'null_etag'},body:JSON.stringify({n:user.name,s:totalStars(),d:Object.keys(prog).length,t:tt})});
+if(r.ok){user.offline=0;W('bayt_user',user);srv=''}else srv=r.status===412?'❌ این نام روی سرور قبلاً ثبت شده؛ باید نام کاربری را عوض کنی':'❌ خطای سرور (کد '+r.status+')'}
+catch(e){srv='❌ اتصال به سرور برقرار نشد (شاید فیلتر باشد)'}}
 
 /* ---------- بازی ---------- */
 const nb=i=>{const x=i%G.c,y=i/G.c|0,o=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const a=x+dx,b=y+dy;if(a>=0&&a<G.c&&b>=0&&b<G.r)o.push(b*G.c+a)}return o};
 function start(k){if(!user)return login();
-if(!P.length){card('<h2 style="margin:0;color:var(--acc)">📜 شعری نیست</h2><p> شعرها را اضافه کن.</p>');return}
+if(!P.length){card('<h2 style="margin:0;color:var(--acc)">📜 شعری نیست</h2><p>فایل poems.js را باز کن و شعرها را اضافه کن.</p>');return}
 if(k>doneCount())k=doneCount();li=k;D=DIF[S.dif];const t=look();
 rowsW=gen(k);words=[].concat(...rowsW);
 let N=Math.round(words.length*Math.max(1.7,2.2-.012*k)+8);const c=N<=30?5:6,r=Math.ceil(N/c);N=c*r;
@@ -242,8 +252,11 @@ $('map').onclick=showMap;
 /* ---------- جدول برترین‌ها ---------- */
 async function showLB(){card('<h2 style="margin:0 0 8px;color:var(--acc)">🏆 برترین‌ها</h2><div id="lbx" class="sub">در حال بارگذاری...</div>');
 let rows=[],note='';const tt=Object.values(prog).reduce((a,x)=>a+x.t,0),me={n:user.name,s:totalStars(),d:Object.keys(prog).length,t:tt};
-if(CFG.FIREBASE_URL){try{const r=await fetch(api());const o=await r.json()||{};rows=Object.entries(o).map(([k,v])=>({...v,k}))}catch(e){note='اتصال به سرور برقرار نشد'}}
-if(!CFG.FIREBASE_URL)note='حالت آفلاین: فقط امتیاز همین دستگاه ()';
+await connect();if(!user.offline)await sync();
+try{if(CFG.FIREBASE_URL){const o=await(await tf(fb())).json()||{};rows=Object.entries(o).map(([k,v])=>({...v,k}))}
+else if(CFG.API_URL)rows=(await(await tf(CFG.API_URL+'/users')).json()).map(v=>({...v,k:v.key}))}catch(e){note='❌ اتصال به سرور برقرار نشد (شاید فیلتر باشد)'}
+if(srv)note=srv;if(user.offline&&(CFG.API_URL||CFG.FIREBASE_URL)&&!srv)note='حالت آفلاین: نام تو روی سرور ثبت نشده';
+if(!CFG.API_URL&&!CFG.FIREBASE_URL)note='حالت آفلاین: فقط امتیاز همین دستگاه (برای جدول همه، آدرس سرور را در config.js بگذار)';
 if(!rows.some(r=>r.k===user.key))rows.push({...me,k:user.key});
 rows.sort((a,b)=>b.s-a.s||b.d-a.d||a.t-b.t);
 $('lbx').outerHTML=(note?'<div class="sub">'+note+'</div>':'')+'<table class="lb">'+rows.slice(0,30).map((r,i)=>'<tr class="'+(r.k===user.key?'me':'')+'"><td>'+(['🥇','🥈','🥉'][i]||fa(i+1))+'</td><td>'+String(r.n).replace(/</g,'&lt;')+'</td><td>⭐'+fa(r.s)+'</td><td>'+fa(r.d)+' مرحله</td><td>'+mmss(r.t)+'</td></tr>').join('')+'</table>'}
@@ -252,7 +265,7 @@ $('lbb').onclick=showLB;
 /* ---------- تنظیمات ---------- */
 async function diag(){const m=$('ms');if(!m)return;
 if(!CFG.MUSIC_URL){m.textContent='MUSIC_URL در config.js خالی است (یا config.js قدیمی بارگذاری شده)؛ آدرس فعلی: (خالی)';return}
-try{const r=await fetch(CFG.MUSIC_URL,{method:'HEAD'});m.textContent='آدرس: '+CFG.MUSIC_URL+' | پاسخ سرور: '+r.status+' | نوع: '+(r.headers.get('content-type')||'?')+' | حجم: '+Math.round((+r.headers.get('content-length')||0)/1024)+'KB | '+mstat+(window.__err.length?' | خطای فایل: '+window.__err.join(' ; '):'')}
+try{const r=await tf(CFG.MUSIC_URL,{method:'HEAD'});m.textContent='آدرس: '+CFG.MUSIC_URL+' | پاسخ سرور: '+r.status+' | نوع: '+(r.headers.get('content-type')||'?')+' | حجم: '+Math.round((+r.headers.get('content-length')||0)/1024)+'KB | '+mstat+(window.__err.length?' | خطای فایل: '+window.__err.join(' ; '):'')}
 catch(e){m.textContent='آدرس: '+CFG.MUSIC_URL+' | دسترسی به فایل ممکن نشد | '+mstat}}
 function settings(){const o=(id,arr,cur)=>'<select id="'+id+'">'+arr.map(a=>'<option value="'+a[0]+'"'+(String(a[0])===String(cur)?' selected':'')+'>'+a[1]+'</option>').join('')+'</select>';
 card('<h2 style="margin:0;color:var(--acc)">تنظیمات</h2>'+
