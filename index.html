@@ -94,6 +94,11 @@ const CFG=Object.assign({AUTHOR:'',MUSIC_CREDIT:'',FIREBASE_URL:''},window.CONFI
 const TH=[['توس','#1d3b2a','#0e1f16','#3f6b4e','#2f5640','#e8c766'],['نیشابور','#0f4c5c','#071f27','#2aa6a0','#1e7f86','#ffd98a'],
 ['شیراز','#6b1f3a','#2a0b17','#b9566f','#8e3b52','#ffd6a5'],['اصفهان','#14337a','#071433','#2f6fd0','#2455a8','#9ee7ff'],
 ['یزد','#7a4a1f','#2a1808','#c58a4e','#9c6a36','#ffe3a8'],['تخت جمشید','#2b2b4a','#0a0a1a','#6b6aa8','#504f86','#f2c94c']];
+const PV=[['آذربایجان شرقی',8],['آذربایجان غربی',205],['اردبیل',190],['البرز',100],['ایلام',125],['بوشهر',182],['تهران',218],['چهارمحال و بختیاری',160],
+['خراسان جنوبی',32],['خراسان رضوی',52],['خراسان شمالی',72],['خوزستان',22],['زنجان',240],['سمنان',42],['سیستان و بلوچستان',14],['فارس',335],
+['قزوین',262],['قم',172],['کردستان',148],['کرمان',28],['کرمانشاه',112],['کهگیلویه و بویراحمد',88],['گلستان',132],['گیلان',152],
+['لرستان',170],['مازندران',140],['مرکزی',300],['هرمزگان',196],['همدان',280],['استان اصفهان',222],['استان یزد',48]];
+PV.forEach(([n,h])=>TH.push([n.startsWith('استان')?n:'استان '+n,`hsl(${h},45%,22%)`,`hsl(${h},50%,9%)`,`hsl(${h},36%,42%)`,`hsl(${h},38%,31%)`,`hsl(${(h+40)%360},75%,72%)`]));
 const DIF={easy:{n:'آسان',h:5,m:.6},normal:{n:'متوسط',h:3,m:1},hard:{n:'سخت',h:2,m:1.5}};
 const $=i=>document.getElementById(i);
 const fa=n=>(+n).toLocaleString('fa-IR');
@@ -259,10 +264,7 @@ card('<h2 style="margin:0;color:var(--acc)">تنظیمات</h2>'+
 '<div class="set">انیمیشن'+o('sa',[[1,'روشن'],[0,'خاموش']],S.anim)+'</div>'+
 '<div class="set">بلندی صدا<input type="range" id="sv" min="0" max="1" step=".05" value="'+S.vol+'"></div>'+
 '<div class="set">اندازه‌ی خانه‌ها<input type="range" id="sz" min=".7" max="1.6" step=".1" value="'+S.zoom+'"></div>'+
-'<div class="sub" id="ms">'+mstat+'</div><div class="row"><button class="b" id="mt">▶ تست موزیک</button></div><div class="sub">سختی از مرحله‌ی بعد اعمال می‌شود</div><button class="b big" id="ok">ذخیره</button>');
-diag();$('mt').onclick=()=>{initAudio();const m=$('ms');
-if(!CFG.MUSIC_URL){m.textContent='MUSIC_URL در config.js خالی است (یا config.js قدیمی بارگذاری شده)';return}
-if(!ext){m.textContent=mstat;return}S.music=1;applyVol();ext.play().then(()=>{m.textContent='✅ پخش شد'}).catch(e=>{m.textContent='❌ '+e.name+': '+e.message})};
+(mstat.includes('❌')||window.__err.length?'<div class="sub">'+mstat+(window.__err.length?' | '+window.__err.join(' ; ').replace(/</g,'&lt;'):'')+'</div>':'')+'<div class="sub">سختی از مرحله‌ی بعد اعمال می‌شود</div><button class="b big" id="ok">ذخیره</button>');
 $('ok').onclick=()=>{S.dif=$('sd').value;S.theme=$('st').value;S.style=$('ss').value;S.music=+$('sm').value;S.sfx=+$('sx').value;S.anim=+$('sa').value;S.vol=+$('sv').value;S.zoom=+$('sz').value;
 W('bayt_S',S);applyVol();look();if(cells){D=DIF[S.dif];buildBoard();draw()}closeOv()}}
 $('set').onclick=settings;
