@@ -133,7 +133,7 @@ function initAudio(){try{
 if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();SG=AC.createGain();
 const d=AC.createDelay(),fb=AC.createGain();d.delayTime.value=.33;fb.gain.value=.4;d.connect(fb);fb.connect(d);MG.connect(AC.destination);MG.connect(d);d.connect(AC.destination);SG.connect(AC.destination)}
 if(AC.state==='suspended')AC.resume();
-if(CFG.MUSIC_URL&&!ext&&!extFail){ext=new Audio(CFG.MUSIC_URL);ext.loop=true;mstat='در حال بارگذاری موزیک...';ext.onplaying=()=>{mstat='✅ موزیک تو در حال پخش است'};ext.onerror=()=>{const c=ext&&ext.error?ext.error.code:'';ext=null;extFail=1;mstat='❌ فایل موزیک بارگذاری نشد (کد '+c+'): نام فایل را چک کن'}}
+if(CFG.MUSIC_URL&&!ext&&!extFail){ext=new Audio(CFG.MUSIC_URL);ext.loop=true;mstat='در حال بارگذاری موزیک...';ext.onplaying=()=>{mstat='✅ موزیک در حال پخش است'};ext.onerror=()=>{const c=ext&&ext.error?ext.error.code:'';ext=null;extFail=1;mstat='❌ فایل موزیک بارگذاری نشد (کد '+c+'): نام فایل را چک کن'}}
 if(ext){if(ext.paused&&S.music)ext.play().catch(e=>{if(e&&e.name==='NotSupportedError'){ext=null;extFail=1;mstat='❌ فرمت فایل پشتیبانی نمی‌شود؛ از mp3 استفاده کن'}})}
 else if(!CFG.MUSIC_URL)synth();
 applyVol()}catch(e){}}
@@ -174,7 +174,7 @@ try{await fetch(api(user.key),{method:'PUT',body:JSON.stringify({n:user.name,s:t
 /* ---------- بازی ---------- */
 const nb=i=>{const x=i%G.c,y=i/G.c|0,o=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const a=x+dx,b=y+dy;if(a>=0&&a<G.c&&b>=0&&b<G.r)o.push(b*G.c+a)}return o};
 function start(k){if(!user)return login();
-if(!P.length){card('<h2 style="margin:0;color:var(--acc)">📜 شعری نیست</h2><p>فایل poems.js را باز کن و شعرها را اضافه کن.</p>');return}
+if(!P.length){card('<h2 style="margin:0;color:var(--acc)">📜 شعری نیست</h2><p> شعرها را اضافه کن.</p>');return}
 if(k>doneCount())k=doneCount();li=k;D=DIF[S.dif];const t=look();
 rowsW=gen(k);words=[].concat(...rowsW);
 let N=Math.round(words.length*Math.max(1.7,2.2-.012*k)+8);const c=N<=30?5:6,r=Math.ceil(N/c);N=c*r;
@@ -243,7 +243,7 @@ $('map').onclick=showMap;
 async function showLB(){card('<h2 style="margin:0 0 8px;color:var(--acc)">🏆 برترین‌ها</h2><div id="lbx" class="sub">در حال بارگذاری...</div>');
 let rows=[],note='';const tt=Object.values(prog).reduce((a,x)=>a+x.t,0),me={n:user.name,s:totalStars(),d:Object.keys(prog).length,t:tt};
 if(CFG.FIREBASE_URL){try{const r=await fetch(api());const o=await r.json()||{};rows=Object.entries(o).map(([k,v])=>({...v,k}))}catch(e){note='اتصال به سرور برقرار نشد'}}
-if(!CFG.FIREBASE_URL)note='حالت آفلاین: فقط امتیاز همین دستگاه (برای جدول همه، Firebase را در config.js وصل کن)';
+if(!CFG.FIREBASE_URL)note='حالت آفلاین: فقط امتیاز همین دستگاه ()';
 if(!rows.some(r=>r.k===user.key))rows.push({...me,k:user.key});
 rows.sort((a,b)=>b.s-a.s||b.d-a.d||a.t-b.t);
 $('lbx').outerHTML=(note?'<div class="sub">'+note+'</div>':'')+'<table class="lb">'+rows.slice(0,30).map((r,i)=>'<tr class="'+(r.k===user.key?'me':'')+'"><td>'+(['🥇','🥈','🥉'][i]||fa(i+1))+'</td><td>'+String(r.n).replace(/</g,'&lt;')+'</td><td>⭐'+fa(r.s)+'</td><td>'+fa(r.d)+' مرحله</td><td>'+mmss(r.t)+'</td></tr>').join('')+'</table>'}
